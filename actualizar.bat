@@ -14,35 +14,26 @@ echo         GRITSEE  -  ACTUALIZANDO PROYECTO
 echo  =============================================================
 echo.
 
-set KEY_DEST=C:\ProgramData\gritsee\deploy_key
 set CLONE_DIR=C:\PC-configuration
-
-if not exist "%KEY_DEST%" (
-    echo  ERROR: No se encontro la deploy key en %KEY_DEST%
-    echo  Corre setup_completo.bat primero.
-    pause & exit /b 1
-)
 
 if not exist "%CLONE_DIR%\.git" (
     echo  ERROR: El repo no existe en %CLONE_DIR%
-    echo  Corre setup_completo.bat primero.
+    echo  Corre bootstrap.ps1 primero via AnyDesk.
     pause & exit /b 1
 )
 
-set GIT_SSH_COMMAND=ssh -i "%KEY_DEST%" -o StrictHostKeyChecking=no
-cd /d "%CLONE_DIR%"
-
 echo  Descargando actualizaciones...
+cd /d "%CLONE_DIR%"
 git pull
 
 if errorlevel 1 (
     echo.
-    echo  ERROR: No se pudo actualizar. Revisa tu conexion.
+    echo  ERROR: No se pudo actualizar.
+    echo  Si expiro el token, vuelve a correr bootstrap.ps1
     pause & exit /b 1
 )
 
 echo.
 echo  Proyecto actualizado correctamente.
-echo  Los cambios estan en: %CLONE_DIR%
 echo.
 pause
