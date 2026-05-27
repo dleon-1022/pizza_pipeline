@@ -5,79 +5,141 @@ param(
 $user = 'gritseeuser1'
 $pass = [System.IO.File]::ReadAllText($PasswordFile).Trim()
 
-function Register-GritseeTask {
-    param($Name, $Action, $Trigger, $Settings, $Principal)
+# Crea la tarea escribiendo un XML temporal en UTF-16 (requerido por schtasks)
+function Create-TaskFromXml {
+    param([string]$TaskName, [string]$XmlContent)
+
+    $xmlFile = "$env:TEMP\gritsee_task_temp.xml"
     try {
-        Register-ScheduledTask `
-            -TaskName  $Name `
-            -TaskPath  '\Gritsee\' `
-            -Action    $Action `
-            -Trigger   $Trigger `
-            -Settings  $Settings `
-            -Principal $Principal `
-            -Password  $pass `
-            -Force | Out-Null
-        Write-Host "  [OK] $Name"
+        [System.IO.File]::WriteAllText($xmlFile, $XmlContent, [System.Text.Encoding]::Unicode)
+        $result = schtasks /Create /XML $xmlFile /TN "\Gritsee\$TaskName" /RU $user /RP $pass /F 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "  [OK] $TaskName"
+        } else {
+            Write-Host "  [ERROR] $TaskName : $result"
+        }
     } catch {
-        Write-Host "  [ERROR] ${Name}: $_"
+        Write-Host "  [ERROR] $TaskName : $_"
+    } finally {
+        if (Test-Path $xmlFile) { Remove-Item $xmlFile -Force -ErrorAction SilentlyContinue }
     }
 }
 
 # -------------------------------------------------------
 # 1. Daily Pizza Pipeline — 3:00 AM diario
 # -------------------------------------------------------
-$a1 = New-ScheduledTaskAction `
-    -Execute         'cmd.exe' `
-    -Argument        '/c "C:\pizza_pipeline\run_pipeline.bat"' `
-    -WorkingDirectory 'C:\pizza_pipeline'
-
-$t1 = New-ScheduledTaskTrigger -Daily -At '03:00'
-
-$s1 = New-ScheduledTaskSettingsSet `
-    -MultipleInstances    Queue `
-    -WakeToRun `
-    -StartWhenAvailable `
-    -RunOnlyIfNetworkAvailable `
-    -ExecutionTimeLimit   (New-TimeSpan -Hours 72) `
-    -RestartCount         5 `
-    -RestartInterval      (New-TimeSpan -Minutes 15)
-
-$p1 = New-ScheduledTaskPrincipal -UserId $user -LogonType Password -RunLevel Highest
-
-Register-GritseeTask 'Daily Pizza Pipeline' $a1 $t1 $s1 $p1
+$xml1 = @'
+<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <Triggers>
+    <CalendarTrigger>
+      <StartBoundary>2026-01-01T03:00:00</StartBoundary>
+      <Enabled>true</Enabled>
+      <ScheduleByDay><DaysInterval>1</DaysInterval></ScheduleByDay>
+    </CalendarTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <UserId>gritseeuser1</UserId>
+      <LogonType>Password</LogonType>
+      <RunLevel>HighestAvailable</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>Queue</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <WakeToRun>true</WakeToRun>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>true</RunOnlyIfNetworkAvailable>
+    <ExecutionTimeLimit>PT72H</ExecutionTimeLimit>
+    <Enabled>true</Enabled>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>cmd.exe</Command>
+      <Arguments>/c "C:\pizza_pipeline\run_pipeline.bat"</Arguments>
+      <WorkingDirectory>C:\pizza_pipeline</WorkingDirectory>
+    </Exec>
+  </Actions>
+</Task>
+'@
 
 # -------------------------------------------------------
 # 2. Quality run — cada 15 min desde las 10:21, 13 horas
-#    La repeticion se configura despues de crear el trigger
 # -------------------------------------------------------
-$a2 = New-ScheduledTaskAction `
-    -Execute 'C:\Users\gritseeuser1\Documents\qualityrun.bat'
-
-$t2 = New-ScheduledTaskTrigger -Daily -At '10:21'
-$t2.Repetition.Interval        = 'PT15M'
-$t2.Repetition.Duration        = 'PT13H'
-$t2.Repetition.StopAtDurationEnd = $true
-
-$s2 = New-ScheduledTaskSettingsSet `
-    -MultipleInstances  IgnoreNew `
-    -ExecutionTimeLimit (New-TimeSpan -Hours 4)
-
-$p2 = New-ScheduledTaskPrincipal -UserId $user -LogonType Password -RunLevel Limited
-
-Register-GritseeTask 'Quality run' $a2 $t2 $s2 $p2
+$xml2 = @'
+<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <Triggers>
+    <CalendarTrigger>
+      <Repetition>
+        <Interval>PT15M</Interval>
+        <Duration>PT13H</Duration>
+        <StopAtDurationEnd>true</StopAtDurationEnd>
+      </Repetition>
+      <StartBoundary>2026-01-01T10:21:00</StartBoundary>
+      <Enabled>true</Enabled>
+      <ScheduleByDay><DaysInterval>1</DaysInterval></ScheduleByDay>
+    </CalendarTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <UserId>gritseeuser1</UserId>
+      <LogonType>Password</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <ExecutionTimeLimit>PT4H</ExecutionTimeLimit>
+    <Enabled>true</Enabled>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>C:\Users\gritseeuser1\Documents\qualityrun.bat</Command>
+    </Exec>
+  </Actions>
+</Task>
+'@
 
 # -------------------------------------------------------
 # 3. Quality delete — 8:20 AM diario
 # -------------------------------------------------------
-$a3 = New-ScheduledTaskAction `
-    -Execute 'C:\Users\gritseeuser1\Documents\deletequality.bat'
+$xml3 = @'
+<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <Triggers>
+    <CalendarTrigger>
+      <StartBoundary>2026-01-01T08:20:00</StartBoundary>
+      <Enabled>true</Enabled>
+      <ScheduleByDay><DaysInterval>1</DaysInterval></ScheduleByDay>
+    </CalendarTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <UserId>gritseeuser1</UserId>
+      <LogonType>Password</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <ExecutionTimeLimit>PT72H</ExecutionTimeLimit>
+    <Enabled>true</Enabled>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>C:\Users\gritseeuser1\Documents\deletequality.bat</Command>
+    </Exec>
+  </Actions>
+</Task>
+'@
 
-$t3 = New-ScheduledTaskTrigger -Daily -At '08:20'
-
-$s3 = New-ScheduledTaskSettingsSet `
-    -MultipleInstances  IgnoreNew `
-    -ExecutionTimeLimit (New-TimeSpan -Hours 72)
-
-$p3 = New-ScheduledTaskPrincipal -UserId $user -LogonType Password -RunLevel Limited
-
-Register-GritseeTask 'Quality delete' $a3 $t3 $s3 $p3
+Create-TaskFromXml 'Daily Pizza Pipeline' $xml1
+Create-TaskFromXml 'Quality run'          $xml2
+Create-TaskFromXml 'Quality delete'       $xml3
