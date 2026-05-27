@@ -99,7 +99,7 @@ foreach ($t in $tareaEsperadas) {
 
     $comandoOk = $comandoReal -like "*$($t.Comando)*"
     if ($comandoOk) {
-        Write-Host "  Comando   : OK — $comandoReal" -ForegroundColor Green
+        Write-Host "  Comando   : OK -$comandoReal" -ForegroundColor Green
     } else {
         Write-Host "  Comando   : DIFERENTE" -ForegroundColor Yellow
         Write-Host "              Esperado : $($t.Comando)"
@@ -109,9 +109,9 @@ foreach ($t in $tareaEsperadas) {
     # Verificar usuario
     $principal = $tarea.Principal
     if ($principal.UserId -eq "gritseeuser1") {
-        Write-Host "  Usuario   : OK — gritseeuser1" -ForegroundColor Green
+        Write-Host "  Usuario   : OK -gritseeuser1" -ForegroundColor Green
     } else {
-        Write-Host "  Usuario   : DIFERENTE — $($principal.UserId)" -ForegroundColor Yellow
+        Write-Host "  Usuario   : DIFERENTE -$($principal.UserId)" -ForegroundColor Yellow
     }
 
     if ($tarea.Settings.Enabled -and $comandoOk -and $principal.UserId -eq "gritseeuser1") {
@@ -152,9 +152,9 @@ foreach ($archivo in $archivos) {
 Write-Host ""
 Write-Host "  ============================================================="
 if ($errores -eq 0) {
-    Write-Host "  RESULTADO: TODO CORRECTO ($ok/3 tareas OK)" -ForegroundColor Green
+    Write-Host "  RESULTADO: TODO CORRECTO -$ok de 3 tareas OK" -ForegroundColor Green
 } else {
-    Write-Host "  RESULTADO: $errores PROBLEMA(S) ENCONTRADO(S)" -ForegroundColor Red
+    Write-Host "  RESULTADO: $errores PROBLEMAS ENCONTRADOS" -ForegroundColor Red
     Write-Host "  Revisa los puntos marcados en rojo arriba." -ForegroundColor Yellow
 }
 Write-Host "  ============================================================="
