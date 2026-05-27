@@ -4,15 +4,13 @@ chcp 65001 >nul 2>&1
 title Gritsee - Configuracion Pizza Quality
 
 :: =====================================================
-::  RUTAS FIJAS DEL SISTEMA (no dependen de donde
-::  se clono el repo — siempre se despliega aqui)
-:: =====================================================
+::  ESTRUCTURA DEL SISTEMA
+::  El repo se clona directo a C:\pizza_pipeline\
+::  No hay copia de archivos - el repo ES el pipeline
 ::
-::  Repo clonado        →  cualquier carpeta (SCRIPT_DIR)
-::  Pipeline            →  C:\pizza_pipeline\
+::  Pipeline (= repo)   →  C:\pizza_pipeline\
 ::  Scripts de video    →  C:\Users\gritseeuser1\Documents\
 ::  Videos grabados     →  C:\Users\gritseeuser1\Documents\qualityvids\
-::
 :: =====================================================
 
 :: === VERIFICAR ADMINISTRADOR ===
@@ -42,12 +40,11 @@ echo  =============================================================
 echo.
 echo  Este asistente instalara y configurara automaticamente:
 echo.
-echo    [1/6]  Python 3.14.4
-echo    [2/6]  Node.js 22.22.2
-echo    [3/6]  Microsoft Visual C++ Redistributable
-echo    [4/6]  Archivos del proyecto + dependencias pip y npm
-echo    [5/6]  Camara RTSP
-echo    [6/6]  Tareas programadas de Windows
+echo    [1/5]  Python 3.14.4
+echo    [2/5]  Node.js 22.22.2
+echo    [3/5]  Microsoft Visual C++ Redistributable
+echo    [4/5]  Dependencias pip y npm
+echo    [5/5]  Camara RTSP + Tareas programadas
 echo.
 echo  Tiempo estimado: 5-10 minutos  ^|  Requiere internet
 echo  Log guardado en: %LOG_FILE%
@@ -88,10 +85,10 @@ echo  =============================================================
 echo.
 
 :: =====================================================
-::  1/6 — Python 3.14.4
+::  1/5 - Python 3.14.4
 :: =====================================================
-echo  [1/6]  Descargando Python 3.14.4...
-echo [PASO 1/6] Python 3.14.4 >> "%LOG_FILE%"
+echo  [1/5]  Descargando Python 3.14.4...
+echo [PASO 1/5] Python 3.14.4 >> "%LOG_FILE%"
 
 powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.14.4/python-3.14.4-amd64.exe' -OutFile '%TEMP_SETUP%\python_setup.exe' -UseBasicParsing" >> "%LOG_FILE%" 2>&1
 if not exist "%TEMP_SETUP%\python_setup.exe" (
@@ -112,10 +109,10 @@ echo [OK] Python 3.14.4 instalado >> "%LOG_FILE%"
 echo.
 
 :: =====================================================
-::  2/6 — Node.js 22.22.2
+::  2/5 - Node.js 22.22.2
 :: =====================================================
-echo  [2/6]  Descargando Node.js 22.22.2...
-echo [PASO 2/6] Node.js 22.22.2 >> "%LOG_FILE%"
+echo  [2/5]  Descargando Node.js 22.22.2...
+echo [PASO 2/5] Node.js 22.22.2 >> "%LOG_FILE%"
 
 powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://nodejs.org/dist/v22.22.2/node-v22.22.2-x64.msi' -OutFile '%TEMP_SETUP%\node_setup.msi' -UseBasicParsing" >> "%LOG_FILE%" 2>&1
 if not exist "%TEMP_SETUP%\node_setup.msi" (
@@ -131,10 +128,10 @@ echo [OK] Node.js 22.22.2 instalado >> "%LOG_FILE%"
 echo.
 
 :: =====================================================
-::  3/6 — Microsoft Visual C++ Redistributable
+::  3/5 - Visual C++ Redistributable
 :: =====================================================
-echo  [3/6]  Descargando Visual C++ Redistributable...
-echo [PASO 3/6] Visual C++ Redistributable >> "%LOG_FILE%"
+echo  [3/5]  Descargando Visual C++ Redistributable...
+echo [PASO 3/5] Visual C++ Redistributable >> "%LOG_FILE%"
 
 powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile '%TEMP_SETUP%\vc_redist.exe' -UseBasicParsing" >> "%LOG_FILE%" 2>&1
 if not exist "%TEMP_SETUP%\vc_redist.exe" (
@@ -153,57 +150,48 @@ echo.
 for /f "skip=2 tokens=2*" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v Path 2^>nul') do set "SYS_PATH=%%b"
 if defined SYS_PATH set "PATH=%SYS_PATH%;%PATH%"
 
+::  4/5 - Dependencias pip y npm
+::  Los archivos ya estan en SCRIPT_DIR porque el
+::  repo se clono directamente a C:\pizza_pipeline\
 :: =====================================================
-::  4/6 — Archivos del proyecto + dependencias
-:: =====================================================
-echo  [4/6]  Copiando archivos y configurando dependencias...
-echo [PASO 4/6] Archivos y dependencias >> "%LOG_FILE%"
+echo  [4/5]  Configurando dependencias...
+echo [PASO 4/5] Dependencias >> "%LOG_FILE%"
 
-:: --- Pipeline → C:\pizza_pipeline\ ---
-if not exist "C:\pizza_pipeline" mkdir "C:\pizza_pipeline"
-xcopy /E /I /Y "%SCRIPT_DIR%pizza_pipeline\*" "C:\pizza_pipeline\" >> "%LOG_FILE%" 2>&1
-
-:: Crear carpetas de runtime
-mkdir "C:\pizza_pipeline\frames" 2>nul
-mkdir "C:\pizza_pipeline\cropped_frames" 2>nul
-mkdir "C:\pizza_pipeline\selected_frames" 2>nul
+:: Crear carpetas de runtime (el codigo ya esta aqui)
+mkdir "%SCRIPT_DIR%frames"          2>nul
+mkdir "%SCRIPT_DIR%cropped_frames"  2>nul
+mkdir "%SCRIPT_DIR%selected_frames" 2>nul
 
 :: Escribir location_slug
-powershell -NoProfile -Command "Set-Content -Path 'C:\pizza_pipeline\location_slug.txt' -Value '!LOCATION_SLUG!' -NoNewline" >> "%LOG_FILE%" 2>&1
-
-echo         C:\pizza_pipeline\  [OK]
-echo [OK] Archivos pipeline copiados a C:\pizza_pipeline >> "%LOG_FILE%"
+powershell -NoProfile -Command "Set-Content -Path '%SCRIPT_DIR%location_slug.txt' -Value '!LOCATION_SLUG!' -NoNewline" >> "%LOG_FILE%" 2>&1
 echo [INFO] location_slug = !LOCATION_SLUG! >> "%LOG_FILE%"
 
-:: --- Documents de gritseeuser1 ---
+:: Copiar deletequality.bat a Documents
 if not exist "C:\Users\gritseeuser1\Documents" mkdir "C:\Users\gritseeuser1\Documents"
 copy /Y "%SCRIPT_DIR%video\deletequality.bat" "C:\Users\gritseeuser1\Documents\deletequality.bat" >> "%LOG_FILE%" 2>&1
-echo         C:\Users\gritseeuser1\Documents\  [OK]
 echo [OK] deletequality.bat copiado >> "%LOG_FILE%"
 
-:: --- Dependencias Python (pip) ---
+:: pip install
 echo         Instalando dependencias Python (pip)...
-echo [INFO] pip install requirements.txt >> "%LOG_FILE%"
 python -m pip install --upgrade pip -q >> "%LOG_FILE%" 2>&1
-python -m pip install -r "C:\pizza_pipeline\requirements.txt" >> "%LOG_FILE%" 2>&1
+python -m pip install -r "%SCRIPT_DIR%requirements.txt" >> "%LOG_FILE%" 2>&1
 if errorlevel 1 (
     echo         AVISO: Algunas dependencias Python no se instalaron.
     echo         Revisa el log para ver el detalle.
-    echo [WARN] pip install con errores - revisar log >> "%LOG_FILE%"
+    echo [WARN] pip install con errores >> "%LOG_FILE%"
 ) else (
     echo         Dependencias Python (pip)  [OK]
     echo [OK] pip install completado >> "%LOG_FILE%"
 )
 
-:: --- Dependencias Node.js (npm) ---
+:: npm install
 echo         Instalando dependencias Node.js (npm)...
-echo [INFO] npm install en C:\pizza_pipeline >> "%LOG_FILE%"
-cd /d "C:\pizza_pipeline"
+cd /d "%SCRIPT_DIR%"
 call npm install >> "%LOG_FILE%" 2>&1
 if errorlevel 1 (
     echo         AVISO: Algunas dependencias Node.js no se instalaron.
     echo         Revisa el log para ver el detalle.
-    echo [WARN] npm install con errores - revisar log >> "%LOG_FILE%"
+    echo [WARN] npm install con errores >> "%LOG_FILE%"
 ) else (
     echo         Dependencias Node.js (npm)  [OK]
     echo [OK] npm install completado >> "%LOG_FILE%"
@@ -211,34 +199,26 @@ if errorlevel 1 (
 echo.
 
 :: =====================================================
-::  5/6 — Configuracion de camara RTSP
+::  5/5 - Camara RTSP + Tareas programadas
 :: =====================================================
-echo  [5/6]  Configurando camara RTSP...
-echo [PASO 5/6] Configuracion camara RTSP >> "%LOG_FILE%"
+echo  [5/5]  Configurando camara y tareas programadas...
+echo [PASO 5/5] Camara y tareas >> "%LOG_FILE%"
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%setup_camera.ps1" -LogFile "%LOG_FILE%"
 if errorlevel 1 (
     echo  AVISO: No se pudo configurar la camara.
-    echo  qualityrun.bat no fue generado automaticamente.
     echo  Puedes configurarlo manualmente editando:
     echo    C:\Users\gritseeuser1\Documents\qualityrun.bat
     echo [WARN] setup_camera.ps1 fallo >> "%LOG_FILE%"
 ) else (
-    echo         Camara RTSP configurada  [OK]
+    echo         Camara RTSP  [OK]
     echo [OK] qualityrun.bat generado >> "%LOG_FILE%"
 )
-echo.
-
-:: =====================================================
-::  6/6 — Tareas programadas de Windows
-:: =====================================================
-echo  [6/6]  Creando tareas programadas de Windows...
-echo [PASO 6/6] Tareas programadas >> "%LOG_FILE%"
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%create_tasks.ps1" -PasswordFile "%TEMP_SETUP%\pwd.tmp" >> "%LOG_FILE%" 2>&1
 if errorlevel 1 (
     echo  AVISO: Error al crear las tareas programadas.
-    echo  Revisa el log o crealas manualmente desde el Programador de tareas.
+    echo  Revisa el log o crealas manualmente.
     echo [WARN] create_tasks.ps1 con errores >> "%LOG_FILE%"
 ) else (
     echo         Tareas programadas  [OK]
@@ -260,12 +240,12 @@ echo [FIN] Configuracion completada %date% %time% >> "%LOG_FILE%"
 :: =====================================================
 ::  Verificar google_key.json
 :: =====================================================
-if not exist "C:\pizza_pipeline\google_key.json" (
+if not exist "%SCRIPT_DIR%google_key.json" (
     echo  =============================================================
     echo   ATENCION - FALTA UN ARCHIVO
     echo  =============================================================
     echo.
-    echo   google_key.json no esta en C:\pizza_pipeline\
+    echo   google_key.json no esta en C:\pizza_pipeline\ (= esta carpeta)
     echo.
     echo   Para copiarlo:
     echo     1. En AnyDesk abre el File Manager ^(icono carpeta arriba^)
@@ -281,11 +261,9 @@ echo  =============================================================
 echo         CONFIGURACION COMPLETADA CON EXITO
 echo  =============================================================
 echo.
-echo  Rutas del sistema:
-echo.
-echo    C:\pizza_pipeline\           Pipeline de analisis
-echo    C:\Users\gritseeuser1\Documents\qualityvids\   Videos grabados
-echo    C:\Users\gritseeuser1\Documents\qualityrun.bat  Grabacion
+echo  Carpeta del proyecto:  C:\pizza_pipeline\
+echo  Videos grabados:       C:\Users\gritseeuser1\Documents\qualityvids\
+echo  Script de grabacion:   C:\Users\gritseeuser1\Documents\qualityrun.bat
 echo.
 echo  Tareas programadas:
 echo.

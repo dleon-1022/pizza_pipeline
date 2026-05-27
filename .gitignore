@@ -1,14 +1,17 @@
 # Credenciales Google - copiar manualmente via AnyDesk a C:\pizza_pipeline\
 google_key.json
 
-# Carpetas generadas en runtime (se suben vacías con .gitkeep)
-pizza_pipeline/frames/*
-!pizza_pipeline/frames/.gitkeep
-pizza_pipeline/cropped_frames/*
-!pizza_pipeline/cropped_frames/.gitkeep
-pizza_pipeline/selected_frames/*
-!pizza_pipeline/selected_frames/.gitkeep
-pizza_pipeline/processed_videos.txt
+# Slug de locacion - especifico de cada PC
+location_slug.txt
+
+# Carpetas generadas en runtime (se suben vacias con .gitkeep)
+frames/*
+!frames/.gitkeep
+cropped_frames/*
+!cropped_frames/.gitkeep
+selected_frames/*
+!selected_frames/.gitkeep
+processed_videos.txt
 
 # Videos
 *.mp4

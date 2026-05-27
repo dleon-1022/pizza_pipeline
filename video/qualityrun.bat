@@ -15,7 +15,7 @@ exit /b
 :RUN
 if not exist "C:\Users\gritseeuser1\Documents\qualityvids" mkdir "C:\Users\gritseeuser1\Documents\qualityvids"
 ffmpeg -rtsp_transport tcp ^
--i "rtsp://prueba:P1zz42026$$@192.168.12.150:1052/Streaming/Channels/1701" ^
+-i "RTSP_URL_GENERADA_POR_SETUP_CAMERA" ^
 -an ^
 -c:v libx264 -preset ultrafast -tune zerolatency ^
 -f segment -segment_time 600 -reset_timestamps 1 -strftime 1 ^
