@@ -4,11 +4,47 @@ const { google } = require('googleapis');
 
 console.log("=== upload_to_sheets.js (PROD) ===");
 
-const SHEET_ID = "1tMHhhksprea8DxD944oe6WV8Anez14OgVi8lJZ76Kb8";
-const SHEET_NAME = "mirasierra2";
+const SHEET_ID  = "1tMHhhksprea8DxD944oe6WV8Anez14OgVi8lJZ76Kb8";
 
-const KEY_FILE = path.join(__dirname, "google_key.json");
-const CSV_FILE = path.join(__dirname, "report.csv");
+const KEY_FILE        = path.join(__dirname, "google_key.json");
+const CSV_FILE        = path.join(__dirname, "report.csv");
+const SLUG_FILE       = path.join(__dirname, "location_slug.txt");
+
+// Leer slug desde location_slug.txt
+if (!fs.existsSync(SLUG_FILE)) {
+  console.error(`No existe location_slug.txt en: ${SLUG_FILE}`);
+  process.exit(1);
+}
+const SHEET_NAME = fs.readFileSync(SLUG_FILE, "utf8").trim();
+if (!SHEET_NAME) {
+  console.error("location_slug.txt está vacío.");
+  process.exit(1);
+}
+console.log(`Hoja destino: ${SHEET_NAME}`);
+
+async function ensureSheetExists(sheets) {
+  const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
+  const exists = spreadsheet.data.sheets.some(
+    s => s.properties.title === SHEET_NAME
+  );
+
+  if (!exists) {
+    console.log(`La hoja "${SHEET_NAME}" no existe, creándola...`);
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: SHEET_ID,
+      requestBody: {
+        requests: [{
+          addSheet: {
+            properties: { title: SHEET_NAME }
+          }
+        }]
+      }
+    });
+    console.log(`Hoja "${SHEET_NAME}" creada.`);
+  } else {
+    console.log(`Hoja "${SHEET_NAME}" encontrada.`);
+  }
+}
 
 async function upload() {
   console.log("Iniciando upload a Google Sheets...");
@@ -55,10 +91,10 @@ async function upload() {
   }
 
   const formattedRows = rows.map(r => {
-    const fecha = r[0] || "";
+    const fecha  = r[0] || "";
     const imagen = r[1] || "";
-    const video = r[2] || "";
-    const url = r[3] || "";
+    const video  = r[2] || "";
+    const url    = r[3] || "";
 
     return [
       fecha,
@@ -77,6 +113,9 @@ async function upload() {
 
   const client = await auth.getClient();
   const sheets = google.sheets({ version: "v4", auth: client });
+
+  // Crear hoja si no existe
+  await ensureSheetExists(sheets);
 
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
