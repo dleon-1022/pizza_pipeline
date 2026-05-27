@@ -257,6 +257,26 @@ rmdir /s /q "%TEMP_SETUP%"               >nul 2>&1
 
 echo [FIN] Configuracion completada %date% %time% >> "%LOG_FILE%"
 
+:: =====================================================
+::  Verificar google_key.json
+:: =====================================================
+if not exist "C:\pizza_pipeline\google_key.json" (
+    echo  =============================================================
+    echo   ATENCION - FALTA UN ARCHIVO
+    echo  =============================================================
+    echo.
+    echo   google_key.json no esta en C:\pizza_pipeline\
+    echo.
+    echo   Para copiarlo:
+    echo     1. En AnyDesk abre el File Manager ^(icono carpeta arriba^)
+    echo     2. En tu PC navega hasta google_key.json
+    echo     3. Copialo a C:\pizza_pipeline\ en la PC remota
+    echo.
+    echo   Sin este archivo NO funcionara la subida a Google Sheets.
+    echo.
+    pause
+)
+
 echo  =============================================================
 echo         CONFIGURACION COMPLETADA CON EXITO
 echo  =============================================================

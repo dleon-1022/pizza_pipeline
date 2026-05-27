@@ -1,4 +1,4 @@
-# Credenciales y archivos sensibles
+# Credenciales Google - copiar manualmente via AnyDesk a C:\pizza_pipeline\
 google_key.json
 
 # Carpetas generadas en runtime (se suben vacías con .gitkeep)
