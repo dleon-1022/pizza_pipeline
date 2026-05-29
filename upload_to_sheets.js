@@ -15,12 +15,18 @@ if (!fs.existsSync(SLUG_FILE)) {
   console.error(`No existe location_slug.txt en: ${SLUG_FILE}`);
   process.exit(1);
 }
-const SHEET_NAME = fs.readFileSync(SLUG_FILE, "utf8").trim();
-if (!SHEET_NAME) {
+const slug = fs.readFileSync(SLUG_FILE, "utf8").trim();
+if (!slug) {
   console.error("location_slug.txt está vacío.");
   process.exit(1);
 }
-console.log(`Hoja destino: ${SHEET_NAME}`);
+// Extraer lo que viene después del primer guion, capitalizar cada palabra y unir con espacio
+// ej: "pcsapi-cardenas"        → "Cardenas"
+// ej: "pcsapi-al-super-satelite" → "Al Super Satelite"
+const SHEET_NAME = slug.split('-').slice(1)
+  .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+  .join(' ');
+console.log(`Slug: ${slug} → Hoja destino: ${SHEET_NAME}`);
 
 async function ensureSheetExists(sheets) {
   const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
