@@ -3,15 +3,20 @@ cd /d C:\pizza_pipeline
 
 set /p LOCATION_SLUG=<location_slug.txt
 
+echo 0. Limpiando carpetas de trabajo
+del /q "C:\pizza_pipeline\frames\*"          2>nul
+del /q "C:\pizza_pipeline\selected_frames\*" 2>nul
+del /q "C:\pizza_pipeline\cropped_frames\*"  2>nul
+
 echo 1. Extrayendo frames
 python extract_frames.py
 if errorlevel 1 goto error
 
-echo 2. Clasificando frames
+echo 2. Clasificando frames con ResNet
 python classify_frames.py
 if errorlevel 1 goto error
 
-echo 3. Recortando pizzas de los frames buenos
+echo 3. Recortando pizzas de los frames buenos con YOLO
 python crop_pizza_images.py --model C:\pizza_pipeline\best.pt --input_dir C:\pizza_pipeline\selected_frames --output_dir C:\pizza_pipeline\cropped_frames
 if errorlevel 1 goto error
 

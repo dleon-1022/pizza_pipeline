@@ -79,7 +79,7 @@ def process_batch():
         pred = outputs[i].argmax().item()
         score = probs[i, good_idx].item()
 
-        if pred == good_idx:
+        if score > 0.3:
             name = batch_names[i]
             path = batch_paths[i]
 
@@ -117,7 +117,7 @@ saved = 0
 
 for video, imgs in candidates.items():
     imgs.sort(key=lambda x: x[0], reverse=True)
-    top = imgs[:4]
+    top = imgs[:6]
 
     print(f"\n{video}: {len(imgs)} candidatas, guardando {len(top)}")
 
