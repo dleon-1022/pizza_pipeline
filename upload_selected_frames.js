@@ -4,7 +4,7 @@ const { exec } = require('child_process');
 
 const s3Folder = process.argv[2] || "default";
 
-const selectedDir = "C:\\pizza_pipeline\\selected_frames";
+const selectedDir = "C:\\pizza_pipeline\\cropped_frames";
 const uploadBase = "C:\\pizza_pipeline\\uploads";
 const reportFile = "C:\\pizza_pipeline\\report.csv";
 
