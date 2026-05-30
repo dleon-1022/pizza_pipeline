@@ -13,8 +13,8 @@ torch.set_num_threads(1)
 torch.set_num_interop_threads(1)
 
 BASE_DIR = Path(r"C:\pizza_pipeline")
-MODEL_PATH = BASE_DIR / "frame_classifier.pth"
-INPUT_DIR = BASE_DIR / "frames"
+MODEL_PATH = BASE_DIR / "models" / "frame_classifier.pth"
+INPUT_DIR = BASE_DIR / "frames"        # frames completos, como fue entrenado el modelo
 OUTPUT_DIR = BASE_DIR / "selected_frames"
 
 BATCH_SIZE = 16

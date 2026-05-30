@@ -1,1 +1,0 @@
-del /S /Q C:\Users\gritseeuser1\Documents\qualityvids\*

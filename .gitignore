@@ -4,6 +4,9 @@ google_key.json
 # Slug de locacion - especifico de cada PC
 location_slug.txt
 
+# Log del pipeline - especifico de cada PC
+pipeline.log
+
 # Carpetas generadas en runtime (se suben vacias con .gitkeep)
 frames/*
 !frames/.gitkeep
