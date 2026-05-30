@@ -5,7 +5,7 @@ title Gritsee - Pizza Quality
 
 net session >nul 2>&1
 if %errorlevel% neq 0 (
-    powershell -Command "Start-Process cmd -ArgumentList '/c \"%~f0\"' -Verb RunAs"
+    powershell -Command "Start-Process cmd -ArgumentList '/c \"%~f0\" %*' -Verb RunAs"
     exit /b
 )
 
@@ -14,6 +14,44 @@ set PIPELINE_DIR=C:\pizza_pipeline
 set DOCS_DIR=C:\Users\gritseeuser1\Documents
 set LOG_FILE=%USERPROFILE%\Desktop\gritsee_configuracion.log
 
+:: =====================================================
+::  PARSEAR ARGUMENTOS (modo automatico)
+:: =====================================================
+set AUTO_MODE=0
+set TIPO=
+set LOCATION_SLUG=
+set GRITSEE_PASS=
+set CAM_USER=
+set CAM_PASS=
+set CAM_IP=
+set CAM_PORT=554
+set CAM_MARCA=
+set CAM_CANAL=1
+
+:parse_args
+if "%~1"=="" goto :done_parse
+set _ARG=%~1
+if /i "%_ARG%"=="/auto"            set AUTO_MODE=1
+if /i "%_ARG:~0,6%"=="/tipo:"      set TIPO=%_ARG:~6%
+if /i "%_ARG:~0,6%"=="/slug:"      set LOCATION_SLUG=%_ARG:~6%
+if /i "%_ARG:~0,6%"=="/pass:"      set GRITSEE_PASS=%_ARG:~6%
+if /i "%_ARG:~0,10%"=="/cam_user:" set CAM_USER=%_ARG:~10%
+if /i "%_ARG:~0,10%"=="/cam_pass:" set CAM_PASS=%_ARG:~10%
+if /i "%_ARG:~0,8%"=="/cam_ip:"   set CAM_IP=%_ARG:~8%
+if /i "%_ARG:~0,10%"=="/cam_port:" set CAM_PORT=%_ARG:~10%
+if /i "%_ARG:~0,11%"=="/cam_marca:" set CAM_MARCA=%_ARG:~11%
+if /i "%_ARG:~0,11%"=="/cam_canal:" set CAM_CANAL=%_ARG:~11%
+shift
+goto :parse_args
+:done_parse
+
+:: Modo automatico: ir directo segun /tipo
+if %AUTO_MODE%==1 (
+    if /i "!TIPO!"=="actualizar" goto :actualizar
+    if /i "!TIPO!"=="nueva"      goto :nueva
+)
+
+:: Modo interactivo: mostrar menu
 cls
 echo.
 echo  =============================================================
@@ -107,8 +145,10 @@ echo.
 echo  Tiempo estimado: 5-10 minutos  ^|  Requiere internet
 echo  Log guardado en: %LOG_FILE%
 echo.
-echo  Presiona cualquier tecla para comenzar...
-pause >nul
+if %AUTO_MODE%==0 (
+    echo  Presiona cualquier tecla para comenzar...
+    pause >nul
+)
 
 echo ============================================================ > "%LOG_FILE%"
 echo  GRITSEE - CONFIGURACION NUEVA >> "%LOG_FILE%"
@@ -116,22 +156,30 @@ echo  Fecha: %date%  Hora: %time% >> "%LOG_FILE%"
 echo ============================================================ >> "%LOG_FILE%"
 
 :: Contrasena
-echo.
-echo  Ingresa la contrasena del usuario gritseeuser1:
-echo.
-powershell -NoProfile -Command "$p = Read-Host '  Contrasena' -AsSecureString; $b = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($p); $t = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($b); [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($b); [System.IO.File]::WriteAllText('%TEMP_SETUP%\pwd.tmp', $t, [System.Text.Encoding]::UTF8)"
+if %AUTO_MODE%==1 (
+    powershell -NoProfile -Command "[System.IO.File]::WriteAllText('%TEMP_SETUP%\pwd.tmp', '%GRITSEE_PASS%', [System.Text.Encoding]::UTF8)"
+) else (
+    echo.
+    echo  Ingresa la contrasena del usuario gritseeuser1:
+    echo.
+    powershell -NoProfile -Command "$p = Read-Host '  Contrasena' -AsSecureString; $b = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($p); $t = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($b); [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($b); [System.IO.File]::WriteAllText('%TEMP_SETUP%\pwd.tmp', $t, [System.Text.Encoding]::UTF8)"
+)
 if not exist "%TEMP_SETUP%\pwd.tmp" (
     echo  ERROR: No se pudo obtener la contrasena.
-    pause & exit /b 1
+    if %AUTO_MODE%==0 pause
+    exit /b 1
 )
 
 :: Locacion
-echo.
-echo  Ingresa el nombre de esta locacion (ej: pcsapi-cardenas):
-set /p LOCATION_SLUG=  Locacion:
+if %AUTO_MODE%==0 (
+    echo.
+    echo  Ingresa el nombre de esta locacion (ej: pcsapi-cardenas):
+    set /p LOCATION_SLUG=  Locacion:
+)
 if "!LOCATION_SLUG!"=="" (
     echo  ERROR: Debes ingresar un nombre de locacion.
-    pause & exit /b 1
+    if %AUTO_MODE%==0 pause
+    exit /b 1
 )
 echo [INFO] Locacion: !LOCATION_SLUG! >> "%LOG_FILE%"
 
@@ -220,7 +268,11 @@ if errorlevel 1 (
 echo  [5/5]  Configurando camara y tareas programadas...
 echo [PASO 5/5] Camara y tareas >> "%LOG_FILE%"
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%setup_camera.ps1" -LogFile "%LOG_FILE%"
+if %AUTO_MODE%==1 (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%setup_camera.ps1" -LogFile "%LOG_FILE%" -BrandNum "!CAM_MARCA!" -CamUser "!CAM_USER!" -CamPass "!CAM_PASS!" -CamIp "!CAM_IP!" -CamPort "!CAM_PORT!" -Channel "!CAM_CANAL!"
+) else (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%setup_camera.ps1" -LogFile "%LOG_FILE%"
+)
 if errorlevel 1 (
     echo  AVISO: No se pudo configurar la camara automaticamente.
     echo [WARN] setup_camera.ps1 fallo >> "%LOG_FILE%"
@@ -275,7 +327,7 @@ echo    8:20 AM  Limpieza de videos
 echo.
 echo  Log en: %LOG_FILE%
 echo.
-pause
+if %AUTO_MODE%==0 pause
 exit /b 0
 
 :error
@@ -284,5 +336,5 @@ echo [ERROR] %date% %time% >> "%LOG_FILE%"
 echo.
 echo  ERROR - Revisa: %LOG_FILE%
 echo.
-pause
+if %AUTO_MODE%==0 pause
 exit /b 1

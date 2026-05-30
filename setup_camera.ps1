@@ -1,7 +1,19 @@
 # setup_camera.ps1
 # Genera C:\Users\gritseeuser1\Documents\qualityrun.bat con la URL RTSP correcta
+# Modo interactivo: sin parametros
+# Modo automatico: pasar -BrandNum, -CamUser, -CamPass, -CamIp, -CamPort, -Channel
 
-param([string]$LogFile = "")
+param(
+    [string]$LogFile  = "",
+    [string]$BrandNum = "",   # numero de marca (1=Hikvision, 2=Dahua, etc.)
+    [string]$CamUser  = "",
+    [string]$CamPass  = "",
+    [string]$CamIp    = "",
+    [string]$CamPort  = "554",
+    [string]$Channel  = "1"
+)
+
+$autoMode = $BrandNum -ne ""
 
 function Write-Log {
     param([string]$msg)
@@ -28,21 +40,27 @@ Write-Log "    [9]  Bosch"
 Write-Log "    [10] Otro / Ingresar URL manualmente"
 Write-Log ""
 
-$brandNum = Read-Host "  Selecciona el numero de tu camara"
-
-# Credenciales comunes
-Write-Log ""
-$camUser = Read-Host "  Usuario de la camara"
-
-$passSecure = Read-Host "  Contrasena de la camara" -AsSecureString
-$bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($passSecure)
-$camPass = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
-[Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
-
-$camIp = Read-Host "  IP de la camara (ej: 192.168.1.100)"
-
-$portInput = Read-Host "  Puerto RTSP (Enter para usar 554)"
-$camPort = if ($portInput -eq "") { "554" } else { $portInput }
+if ($autoMode) {
+    # Modo automatico: usar parametros recibidos
+    $brandNum = $BrandNum
+    $camUser  = $CamUser
+    $camPass  = $CamPass
+    $camIp    = $CamIp
+    $camPort  = if ($CamPort -eq "") { "554" } else { $CamPort }
+    Write-Log "  Modo automatico: marca=$brandNum ip=$camIp puerto=$camPort"
+} else {
+    # Modo interactivo
+    $brandNum = Read-Host "  Selecciona el numero de tu camara"
+    Write-Log ""
+    $camUser = Read-Host "  Usuario de la camara"
+    $passSecure = Read-Host "  Contrasena de la camara" -AsSecureString
+    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($passSecure)
+    $camPass = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+    $camIp = Read-Host "  IP de la camara (ej: 192.168.1.100)"
+    $portInput = Read-Host "  Puerto RTSP (Enter para usar 554)"
+    $camPort = if ($portInput -eq "") { "554" } else { $portInput }
+}
 
 # Construir URL segun marca
 $rtspUrl = ""
@@ -53,7 +71,7 @@ switch ($brandNum) {
         # Hikvision
         # Formato: /Streaming/Channels/{canal}{stream}
         # Canal 1 stream principal = 101, canal 2 = 201, etc.
-        $chInput = Read-Host "  Canal de video (Enter para canal 1)"
+        $chInput = if ($autoMode) { $Channel } else { Read-Host "  Canal de video (Enter para canal 1)" }
         $ch = if ($chInput -eq "") { "1" } else { $chInput }
         $rtspUrl = "rtsp://${camUser}:${camPass}@${camIp}:${camPort}/Streaming/Channels/${ch}01"
         Write-Log "  Formato Hikvision → /Streaming/Channels/${ch}01"
@@ -62,7 +80,7 @@ switch ($brandNum) {
     "2" {
         # Dahua / Amcrest
         # Formato: /cam/realmonitor?channel=N&subtype=0
-        $chInput = Read-Host "  Canal de video (Enter para canal 1)"
+        $chInput = if ($autoMode) { $Channel } else { Read-Host "  Canal de video (Enter para canal 1)" }
         $ch = if ($chInput -eq "") { "1" } else { $chInput }
         $rtspUrl = "rtsp://${camUser}:${camPass}@${camIp}:${camPort}/cam/realmonitor?channel=${ch}&subtype=0"
         Write-Log "  Formato Dahua → /cam/realmonitor?channel=${ch}&subtype=0"
@@ -70,7 +88,7 @@ switch ($brandNum) {
 
     "3" {
         # Anpviz (compatible Hikvision)
-        $chInput = Read-Host "  Canal de video (Enter para canal 1)"
+        $chInput = if ($autoMode) { $Channel } else { Read-Host "  Canal de video (Enter para canal 1)" }
         $ch = if ($chInput -eq "") { "1" } else { $chInput }
         $rtspUrl = "rtsp://${camUser}:${camPass}@${camIp}:${camPort}/Streaming/Channels/${ch}01"
         Write-Log "  Formato Anpviz → /Streaming/Channels/${ch}01"
@@ -88,7 +106,7 @@ switch ($brandNum) {
     "5" {
         # Uniview / UNV
         # Formato: /unicast/c{canal}/s0/live
-        $chInput = Read-Host "  Canal de video (Enter para canal 1)"
+        $chInput = if ($autoMode) { $Channel } else { Read-Host "  Canal de video (Enter para canal 1)" }
         $ch = if ($chInput -eq "") { "1" } else { $chInput }
         $rtspUrl = "rtsp://${camUser}:${camPass}@${camIp}:${camPort}/unicast/c${ch}/s0/live"
         Write-Log "  Formato Uniview → /unicast/c${ch}/s0/live"
@@ -131,7 +149,7 @@ switch ($brandNum) {
 
     default {
         Write-Log "  Opcion no reconocida. Usando formato Hikvision por defecto."
-        $chInput = Read-Host "  Canal de video (Enter para canal 1)"
+        $chInput = if ($autoMode) { $Channel } else { Read-Host "  Canal de video (Enter para canal 1)" }
         $ch = if ($chInput -eq "") { "1" } else { $chInput }
         $rtspUrl = "rtsp://${camUser}:${camPass}@${camIp}:${camPort}/Streaming/Channels/${ch}01"
     }

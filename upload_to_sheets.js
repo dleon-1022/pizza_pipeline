@@ -20,10 +20,12 @@ if (!slug) {
   console.error("location_slug.txt está vacío.");
   process.exit(1);
 }
-// Extraer lo que viene después del primer guion, capitalizar cada palabra y unir con espacio
-// ej: "pcsapi-cardenas"        → "Cardenas"
-// ej: "pcsapi-al-super-satelite" → "Al Super Satelite"
-const SHEET_NAME = slug.split('-').slice(1)
+// Formato slug: pcsapi-{nombre}-{id_hex_24chars}
+// ej: "pcsapi-sol-de-oriente-6f285d3ac569eaacdddef92e" → "Sol De Oriente"
+// ej: "pcsapi-cardenas-6f285d3ac569eaacdddef92e"       → "Cardenas"
+const withoutPrefix = slug.replace(/^pcsapi-/, '');
+const nameOnly      = withoutPrefix.replace(/-[0-9a-f]{24}$/, '');
+const SHEET_NAME    = nameOnly.split('-')
   .map(w => w.charAt(0).toUpperCase() + w.slice(1))
   .join(' ');
 console.log(`Slug: ${slug} → Hoja destino: ${SHEET_NAME}`);
