@@ -95,7 +95,7 @@ if not exist "%PIPELINE_DIR%\.git" (
     pause & exit /b 1
 )
 
-echo  [1/2]  Descargando cambios de GitHub...
+echo  [1/3]  Descargando cambios de GitHub...
 cd /d "%PIPELINE_DIR%"
 git pull >> "%LOG_FILE%" 2>&1
 if errorlevel 1 (
@@ -105,11 +105,36 @@ if errorlevel 1 (
 echo         GitHub  [OK]
 echo [OK] git pull completado >> "%LOG_FILE%"
 
-echo  [2/2]  Actualizando dependencias...
+echo  [2/3]  Slug de locacion...
+if exist "%PIPELINE_DIR%\location_slug.txt" (
+    set /p SLUG_ACTUAL=<"%PIPELINE_DIR%\location_slug.txt"
+    echo.
+    echo         Slug actual: !SLUG_ACTUAL!
+    echo.
+    set /p CAMBIAR_SLUG=         Quieres cambiarlo? [s/N]:
+    if /i "!CAMBIAR_SLUG!"=="s" (
+        echo.
+        set /p NUEVO_SLUG=         Nuevo slug:
+        if not "!NUEVO_SLUG!"=="" (
+            powershell -NoProfile -Command "Set-Content -Path '%PIPELINE_DIR%\location_slug.txt' -Value '!NUEVO_SLUG!' -NoNewline"
+            echo         Slug actualizado: !NUEVO_SLUG!  [OK]
+            echo [OK] Slug actualizado: !NUEVO_SLUG! >> "%LOG_FILE%"
+        )
+    ) else (
+        echo         Slug sin cambios  [OK]
+    )
+) else (
+    echo.
+    set /p NUEVO_SLUG=         No hay slug. Ingresa uno:
+    powershell -NoProfile -Command "Set-Content -Path '%PIPELINE_DIR%\location_slug.txt' -Value '!NUEVO_SLUG!' -NoNewline"
+    echo         Slug guardado: !NUEVO_SLUG!  [OK]
+)
+
+echo  [3/3]  Actualizando dependencias...
 python -m pip install -r "%PIPELINE_DIR%\requirements.txt" -q >> "%LOG_FILE%" 2>&1
 echo         Python  [OK]
 call npm install >> "%LOG_FILE%" 2>&1
-echo         Node.js [OK]
+echo         Node.js  [OK]
 echo [OK] Dependencias actualizadas >> "%LOG_FILE%"
 
 echo [FIN] Actualizacion completada %date% %time% >> "%LOG_FILE%"
