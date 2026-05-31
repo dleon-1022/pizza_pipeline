@@ -9,6 +9,17 @@ const selectedDir = "C:\\pizza_pipeline\\cropped_frames";
 const uploadBase  = "C:\\pizza_pipeline\\uploads";
 const reportFile  = "C:\\pizza_pipeline\\report.csv";
 
+// Evita que una corrida sin imagenes o con fallo reutilice un CSV anterior.
+try {
+  if (fs.existsSync(reportFile)) {
+    fs.unlinkSync(reportFile);
+    console.log(`CSV anterior eliminado: ${reportFile}`);
+  }
+} catch (err) {
+  console.error(`No se pudo limpiar CSV anterior: ${err.message}`);
+  process.exit(1);
+}
+
 function getDateStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;

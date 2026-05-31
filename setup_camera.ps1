@@ -10,10 +10,11 @@ param(
     [string]$CamPass  = "",
     [string]$CamIp    = "",
     [string]$CamPort  = "554",
-    [string]$Channel  = "1"
+    [string]$Channel  = "1",
+    [string]$RtspUrl  = ""
 )
 
-$autoMode = $BrandNum -ne ""
+$autoMode = $BrandNum -ne "" -or $RtspUrl -ne ""
 
 function Write-Log {
     param([string]$msg)
@@ -47,6 +48,7 @@ if ($autoMode) {
     $camPass  = $CamPass
     $camIp    = $CamIp
     $camPort  = if ($CamPort -eq "") { "554" } else { $CamPort }
+    if ($RtspUrl) { $brandNum = "10" }
     Write-Log "  Modo automatico: marca=$brandNum ip=$camIp puerto=$camPort"
 } else {
     # Modo interactivo
@@ -97,7 +99,7 @@ switch ($brandNum) {
     "4" {
         # Reolink
         # Formato: /h264Preview_01_main  (canal 1 principal)
-        $chInput = Read-Host "  Canal de video (Enter para canal 1)"
+        $chInput = if ($autoMode) { $Channel } else { Read-Host "  Canal de video (Enter para canal 1)" }
         $ch = if ($chInput -eq "") { "01" } else { $chInput.PadLeft(2,"0") }
         $rtspUrl = "rtsp://${camUser}:${camPass}@${camIp}:${camPort}/h264Preview_${ch}_main"
         Write-Log "  Formato Reolink → /h264Preview_${ch}_main"
@@ -141,10 +143,18 @@ switch ($brandNum) {
 
     "10" {
         # URL manual completa
-        Write-Log ""
-        Write-Log "  Ingresa la URL RTSP completa incluyendo usuario y contrasena."
-        Write-Log "  Ejemplo: rtsp://admin:pass@192.168.1.10:554/Streaming/Channels/101"
-        $rtspUrl = Read-Host "  URL RTSP"
+        if ($autoMode) {
+            if (-not $RtspUrl) {
+                Write-Log "  ERROR: En modo automatico con marca 10 debes enviar -RtspUrl."
+                exit 1
+            }
+            $rtspUrl = $RtspUrl
+        } else {
+            Write-Log ""
+            Write-Log "  Ingresa la URL RTSP completa incluyendo usuario y contrasena."
+            Write-Log "  Ejemplo: rtsp://admin:pass@192.168.1.10:554/Streaming/Channels/101"
+            $rtspUrl = Read-Host "  URL RTSP"
+        }
     }
 
     default {

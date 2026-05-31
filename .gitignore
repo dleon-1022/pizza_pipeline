@@ -6,6 +6,8 @@ location_slug.txt
 
 # Log del pipeline - especifico de cada PC
 pipeline.log
+verify_pipeline.log
+report.csv
 
 # Carpetas generadas en runtime (se suben vacias con .gitkeep)
 frames/*
@@ -15,6 +17,7 @@ cropped_frames/*
 selected_frames/*
 !selected_frames/.gitkeep
 processed_videos.txt
+pending_videos.txt
 
 # Videos
 *.mp4

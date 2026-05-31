@@ -84,6 +84,19 @@ if errorlevel 1 (
 )
 echo [%time%] Google Sheets OK >> "%LOG_FILE%"
 
+:: =====================================================
+::  6. Confirmar videos procesados
+::     Solo se marcan despues de que todo el pipeline termino OK
+:: =====================================================
+echo [%time%] PASO 6: Marcando videos como procesados...
+echo [PASO 6] Confirmar videos procesados >> "%LOG_FILE%"
+python mark_processed_videos.py >> "%LOG_FILE%" 2>&1
+if errorlevel 1 (
+    echo [%time%] ERROR marcando videos procesados >> "%LOG_FILE%"
+    goto :error
+)
+echo [%time%] Videos procesados confirmados >> "%LOG_FILE%"
+
 echo ============================================================ >> "%LOG_FILE%"
 echo [FIN] Pipeline completado %date% %time% >> "%LOG_FILE%"
 echo ============================================================ >> "%LOG_FILE%"

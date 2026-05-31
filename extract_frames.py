@@ -4,10 +4,14 @@ import subprocess
 VIDEO_DIR = r"C:\Users\gritseeuser1\Documents\qualityvids"
 OUTPUT_DIR = r"C:\pizza_pipeline\frames"
 PROCESSED_FILE = r"C:\pizza_pipeline\processed_videos.txt"
+PENDING_FILE = r"C:\pizza_pipeline\pending_videos.txt"
 
 VALID_HOURS = {11, 12, 13, 14, 15, 18, 19, 20, 21}
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+if os.path.exists(PENDING_FILE):
+    os.remove(PENDING_FILE)
 
 # Limpiar frames anteriores
 for f in os.listdir(OUTPUT_DIR):
@@ -29,8 +33,8 @@ def load_processed():
     with open(PROCESSED_FILE, "r", encoding="utf-8") as f:
         return set(line.strip() for line in f if line.strip())
 
-def save_processed(video_name):
-    with open(PROCESSED_FILE, "a", encoding="utf-8") as f:
+def save_pending(video_name):
+    with open(PENDING_FILE, "a", encoding="utf-8") as f:
         f.write(video_name + "\n")
 
 processed_videos = load_processed()
@@ -83,7 +87,7 @@ for video in videos:
         continue
 
     processed_ok += 1
-    save_processed(video)
+    save_pending(video)
     print(f"[OK] Procesado: {video}")
 
 print("\n===== RESUMEN EXTRACCION =====")
