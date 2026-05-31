@@ -193,6 +193,35 @@ function Copy-RuntimeFiles {
     }
 }
 
+function Cleanup-OldRootScripts {
+    # Elimina scripts que en versiones anteriores estaban en la raiz
+    # y ahora estan en scripts\
+    $oldFiles = @(
+        "extract_frames.py", "classify_frames.py", "crop_pizza_images.py",
+        "mark_processed_videos.py", "upload_selected_frames.js", "upload_to_sheets.js",
+        "requirements.txt", "create_tasks.ps1", "setup_camera.ps1", "verify_pipeline.ps1"
+    )
+    foreach ($f in $oldFiles) {
+        $p = Join-Path $PipelineDir $f
+        if (Test-Path $p) {
+            Remove-Item -LiteralPath $p -Force
+            Write-Log "  Eliminado script raiz obsoleto: $f" Yellow
+        }
+    }
+    # Limpiar __pycache__ en raiz
+    $pycache = Join-Path $PipelineDir "__pycache__"
+    if (Test-Path $pycache) {
+        Remove-Item -LiteralPath $pycache -Recurse -Force
+        Write-Log "  Eliminado __pycache__ obsoleto" Yellow
+    }
+    # Limpiar subcarpeta pizza_pipeline\ dentro de pizza_pipeline (error de repo anterior)
+    $wrongSubfolder = Join-Path $PipelineDir "pizza_pipeline"
+    if (Test-Path $wrongSubfolder) {
+        Remove-Item -LiteralPath $wrongSubfolder -Recurse -Force
+        Write-Log "  Eliminada subcarpeta pizza_pipeline obsoleta" Yellow
+    }
+}
+
 function Migrate-LegacyFolder {
     if (-not (Test-Path $LegacyDir)) { return }
 
@@ -354,7 +383,7 @@ function Install-ProjectDependencies {
     & $python -m pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cpu >> $LogFile 2>&1
     if ($LASTEXITCODE -ne 0) { throw "No se pudo instalar PyTorch CPU." }
 
-    & $python -m pip install -r (Join-Path $PipelineDir "requirements.txt") --prefer-binary >> $LogFile 2>&1
+    & $python -m pip install -r (Join-Path $PipelineDir "scripts\requirements.txt") --prefer-binary >> $LogFile 2>&1
     if ($LASTEXITCODE -ne 0) { throw "No se pudieron instalar todas las dependencias Python." }
     Write-Log "  Dependencias Python OK." Green
 
@@ -384,7 +413,7 @@ function Configure-CameraIfNeeded {
     }
 
     Write-Log "  Configurando camara RTSP..."
-    $setupCamera = Join-Path $PipelineDir "setup_camera.ps1"
+    $setupCamera = Join-Path $PipelineDir "scripts\setup_camera.ps1"
     $cameraArgs = @(
         "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $setupCamera,
         "-LogFile", $LogFile,
@@ -422,7 +451,7 @@ function Configure-TasksIfNeeded {
     $tempPassword = Join-Path $env:TEMP "gritsee_pwd.tmp"
     try {
         [IO.File]::WriteAllText($tempPassword, $Options.PcPass.Trim(), [Text.Encoding]::UTF8)
-        & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PipelineDir "create_tasks.ps1") -PasswordFile $tempPassword >> $LogFile 2>&1
+        & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PipelineDir "scripts\create_tasks.ps1") -PasswordFile $tempPassword >> $LogFile 2>&1
         if ($LASTEXITCODE -ne 0) { throw "create_tasks.ps1 fallo." }
     } finally {
         Remove-Item -LiteralPath $tempPassword -Force -ErrorAction SilentlyContinue
@@ -433,7 +462,7 @@ function Configure-TasksIfNeeded {
 function Run-Verification {
     if ($Options.SkipVerify) { return }
 
-    $verifyScript = Join-Path $PipelineDir "verify_pipeline.ps1"
+    $verifyScript = Join-Path $PipelineDir "scripts\verify_pipeline.ps1"
     if (-not (Test-Path $verifyScript)) {
         Write-Log "  No existe verify_pipeline.ps1; se omite verificacion." Yellow
         return
@@ -484,6 +513,7 @@ try {
     } else {
         Sync-Code
     }
+    Cleanup-OldRootScripts
     Save-Slug
     Install-SystemDependencies
     Install-ProjectDependencies

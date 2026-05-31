@@ -331,14 +331,20 @@ foreach ($pc in $pcs) {
 
     $job = Start-Job -ScriptBlock {
         param($anydesk, $id, $pass, $cmd, $timeout)
-        # AnyDesk lee la contrasena por stdin, no como argumento
-        $passFile = Join-Path $env:TEMP "ad_pass_$id.tmp"
         try {
-            [IO.File]::WriteAllText($passFile, $pass, [Text.Encoding]::ASCII)
-            $p = Start-Process -FilePath $anydesk `
-                -ArgumentList "$id --with-password --plain -- $cmd" `
-                -RedirectStandardInput $passFile `
-                -PassThru -NoNewWindow
+            $psi = New-Object System.Diagnostics.ProcessStartInfo
+            $psi.FileName = $anydesk
+            $psi.Arguments = "$id --with-password --plain -- $cmd"
+            $psi.UseShellExecute = $false
+            $psi.RedirectStandardInput = $true
+            $psi.RedirectStandardOutput = $true
+            $psi.RedirectStandardError = $true
+            $psi.CreateNoWindow = $true
+
+            $p = [System.Diagnostics.Process]::Start($psi)
+            $p.StandardInput.WriteLine($pass)
+            $p.StandardInput.Close()
+
             $finished = $p.WaitForExit($timeout * 1000)
             if (-not $finished) {
                 $p.Kill()
@@ -347,8 +353,8 @@ foreach ($pc in $pcs) {
             $code = $p.ExitCode
             if ($null -eq $code) { return 1 }
             return $code
-        } finally {
-            Remove-Item $passFile -Force -ErrorAction SilentlyContinue
+        } catch {
+            return 1
         }
     } -ArgumentList $anydesk, $adId, $adPass, $remoteCmd, $TimeoutSeconds
 

@@ -24,7 +24,7 @@ echo [%time%] Carpetas limpiadas >> "%LOG_FILE%"
 :: =====================================================
 echo [%time%] PASO 1: Extrayendo frames...
 echo [PASO 1] Extraccion de frames >> "%LOG_FILE%"
-python extract_frames.py >> "%LOG_FILE%" 2>&1
+python scripts\extract_frames.py >> "%LOG_FILE%" 2>&1
 if errorlevel 1 (
     echo [%time%] ERROR en extraccion de frames >> "%LOG_FILE%"
     goto :error
@@ -37,7 +37,7 @@ echo [%time%] Frames extraidos OK >> "%LOG_FILE%"
 :: =====================================================
 echo [%time%] PASO 2: Clasificando frames con ResNet...
 echo [PASO 2] Clasificacion ResNet >> "%LOG_FILE%"
-python classify_frames.py >> "%LOG_FILE%" 2>&1
+python scripts\classify_frames.py >> "%LOG_FILE%" 2>&1
 if errorlevel 1 (
     echo [%time%] ERROR en clasificacion ResNet >> "%LOG_FILE%"
     goto :error
@@ -49,7 +49,7 @@ echo [%time%] Clasificacion OK >> "%LOG_FILE%"
 :: =====================================================
 echo [%time%] PASO 3: Recortando pizzas con YOLO...
 echo [PASO 3] Crop YOLO >> "%LOG_FILE%"
-python crop_pizza_images.py ^
+python scripts\crop_pizza_images.py ^
   --model C:\pizza_pipeline\models\best.pt ^
   --input_dir C:\pizza_pipeline\selected_frames ^
   --output_dir C:\pizza_pipeline\cropped_frames ^
@@ -65,7 +65,7 @@ echo [%time%] Crop OK >> "%LOG_FILE%"
 :: =====================================================
 echo [%time%] PASO 4: Subiendo a S3...
 echo [PASO 4] Upload S3 >> "%LOG_FILE%"
-node upload_selected_frames.js %LOCATION_SLUG% >> "%LOG_FILE%" 2>&1
+node scripts\upload_selected_frames.js %LOCATION_SLUG% >> "%LOG_FILE%" 2>&1
 if errorlevel 1 (
     echo [%time%] ERROR en upload S3 >> "%LOG_FILE%"
     goto :error
@@ -77,7 +77,7 @@ echo [%time%] S3 OK >> "%LOG_FILE%"
 :: =====================================================
 echo [%time%] PASO 5: Actualizando Google Sheets...
 echo [PASO 5] Google Sheets >> "%LOG_FILE%"
-node upload_to_sheets.js >> "%LOG_FILE%" 2>&1
+node scripts\upload_to_sheets.js >> "%LOG_FILE%" 2>&1
 if errorlevel 1 (
     echo [%time%] ERROR en Google Sheets >> "%LOG_FILE%"
     goto :error
@@ -90,7 +90,7 @@ echo [%time%] Google Sheets OK >> "%LOG_FILE%"
 :: =====================================================
 echo [%time%] PASO 6: Marcando videos como procesados...
 echo [PASO 6] Confirmar videos procesados >> "%LOG_FILE%"
-python mark_processed_videos.py >> "%LOG_FILE%" 2>&1
+python scripts\mark_processed_videos.py >> "%LOG_FILE%" 2>&1
 if errorlevel 1 (
     echo [%time%] ERROR marcando videos procesados >> "%LOG_FILE%"
     goto :error
