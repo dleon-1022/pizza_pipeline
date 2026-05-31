@@ -1,9 +1,9 @@
 $ErrorActionPreference = "Stop"
 
-$RepoUrl       = "https://github.com/dleon-1022/pizza-pipeline.git"
-$RepoZipUrl    = "https://github.com/dleon-1022/pizza-pipeline/archive/refs/heads/main.zip"
+$RepoUrl       = "https://github.com/dleon-1022/pizza_pipeline.git"
+$RepoZipUrl    = "https://github.com/dleon-1022/pizza_pipeline/archive/refs/heads/main.zip"
 $PipelineDir   = "C:\pizza_pipeline"
-$LegacyDir     = "C:\pizza-pipeline"
+$LegacyDir     = "C:\pizza_pipeline"
 $DocsDir       = "C:\Users\gritseeuser1\Documents"
 $LogFile       = Join-Path $env:USERPROFILE "Desktop\gritsee_configuracion.log"
 $PythonVersion = "3.13.3"

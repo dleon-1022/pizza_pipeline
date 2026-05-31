@@ -1,5 +1,5 @@
 # deploy.ps1
-# Despliega o verifica pizza-pipeline en multiples PCboxes via AnyDesk.
+# Despliega o verifica pizza_pipeline en multiples PCboxes via AnyDesk.
 #
 # Columnas requeridas en Excel:
 # location, id, name, slug, anydesk_id, anydesk_pass, pc_user, pc_password,
@@ -22,7 +22,7 @@ param(
     [string]$GoogleKeyFile = ""
 )
 
-$RepoZipUrl = "https://github.com/dleon-1022/pizza-pipeline/archive/refs/heads/main.zip"
+$RepoZipUrl = "https://github.com/dleon-1022/pizza_pipeline/archive/refs/heads/main.zip"
 
 $COLOR_OK        = 0x00C00000
 $COLOR_ERROR     = 0x000000FF
@@ -169,7 +169,7 @@ function Get-RemoteCommand {
     $remoteScript = @"
 `$ErrorActionPreference = 'Stop'
 `$target = 'C:\pizza_pipeline'
-`$legacy = 'C:\pizza-pipeline'
+`$legacy = 'C:\pizza_pipeline'
 `$repoZipUrl = $(ConvertTo-PsLiteral $RepoZipUrl)
 `$tipo = $(ConvertTo-PsLiteral $tipo)
 `$slug = $(ConvertTo-PsLiteral $slug)
