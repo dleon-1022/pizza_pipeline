@@ -181,29 +181,30 @@ echo  Fecha: %date%  Hora: %time% >> "%LOG_FILE%"
 echo ============================================================ >> "%LOG_FILE%"
 
 :: Contrasena
-if %AUTO_MODE%==1 (
-    powershell -NoProfile -Command "[System.IO.File]::WriteAllText('%TEMP_SETUP%\pwd.tmp', '%GRITSEE_PASS%', [System.Text.Encoding]::UTF8)"
-) else (
-    echo.
-    echo  Ingresa la contrasena del usuario gritseeuser1:
-    echo.
-    powershell -NoProfile -Command "$p = Read-Host '  Contrasena' -AsSecureString; $b = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($p); $t = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($b); [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($b); [System.IO.File]::WriteAllText('%TEMP_SETUP%\pwd.tmp', $t, [System.Text.Encoding]::UTF8)"
-)
+if %AUTO_MODE%==1 goto :pass_auto
+echo.
+echo  Ingresa la contrasena del usuario gritseeuser1:
+echo.
+powershell -NoProfile -Command "$p = Read-Host '  Contrasena' -AsSecureString; $b = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($p); $t = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($b); [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($b); [System.IO.File]::WriteAllText('%TEMP_SETUP%\pwd.tmp', $t, [System.Text.Encoding]::UTF8)"
+goto :check_pass
+:pass_auto
+powershell -NoProfile -Command "[System.IO.File]::WriteAllText('%TEMP_SETUP%\pwd.tmp', '!GRITSEE_PASS!', [System.Text.Encoding]::UTF8)"
+:check_pass
 if not exist "%TEMP_SETUP%\pwd.tmp" (
     echo  ERROR: No se pudo obtener la contrasena.
-    if %AUTO_MODE%==0 pause
+    pause
     exit /b 1
 )
 
 :: Locacion
-if %AUTO_MODE%==0 (
-    echo.
-    echo  Ingresa el nombre de esta locacion (ej: pcsapi-cardenas):
-    set /p LOCATION_SLUG=  Locacion:
-)
+if %AUTO_MODE%==1 goto :check_slug
+echo.
+echo  Ingresa el nombre de esta locacion (ej: pcsapi-cardenas):
+set /p LOCATION_SLUG=  Locacion:
+:check_slug
 if "!LOCATION_SLUG!"=="" (
     echo  ERROR: Debes ingresar un nombre de locacion.
-    if %AUTO_MODE%==0 pause
+    pause
     exit /b 1
 )
 echo [INFO] Locacion: !LOCATION_SLUG! >> "%LOG_FILE%"
