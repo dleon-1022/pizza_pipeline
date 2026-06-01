@@ -281,8 +281,10 @@ function Refresh-Path {
 function Test-Executable {
     param([string]$Path, [string[]]$Args)
 
-    if (-not $Path -or -not (Test-Path $Path)) { return $false }
+    if (-not $Path) { return $false }
 
+    # No usamos Test-Path porque rutas tipo AppData\WindowsApps o stubs
+    # de Windows Store no pasan Test-Path aunque el ejecutable funcione
     try {
         & $Path @Args > $null 2>&1
         return $LASTEXITCODE -eq 0
@@ -327,7 +329,12 @@ function Get-NpmExe {
 }
 
 function Install-SystemDependencies {
-    if ($Options.Tipo -ine "nueva") {
+    # Siempre verifica; instala Python/Node solo si no estan presentes
+    $needsPython = -not (Get-PythonExe)
+    $needsNode   = -not (Get-NpmExe)
+
+    if (-not $needsPython -and -not $needsNode) {
+        Write-Log "  Python y Node.js ya instalados." Green
         return
     }
 
@@ -359,11 +366,13 @@ function Install-SystemDependencies {
             Write-Log "  Node.js ya esta instalado." Green
         }
 
-        Write-Log "  Instalando Visual C++ Redistributable..."
-        $vcInstaller = Join-Path $tempSetup "vc_redist.exe"
-        Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile $vcInstaller -UseBasicParsing
-        $p = Start-Process -FilePath $vcInstaller -ArgumentList "/quiet /norestart" -Wait -PassThru
-        if ($p.ExitCode -notin @(0, 3010)) { throw "Instalador de VC++ fallo con codigo $($p.ExitCode)." }
+        if ($needsPython -or $needsNode) {
+            Write-Log "  Instalando Visual C++ Redistributable..."
+            $vcInstaller = Join-Path $tempSetup "vc_redist.exe"
+            Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile $vcInstaller -UseBasicParsing
+            $p = Start-Process -FilePath $vcInstaller -ArgumentList "/quiet /norestart" -Wait -PassThru
+            if ($p.ExitCode -notin @(0, 3010)) { throw "Instalador de VC++ fallo con codigo $($p.ExitCode)." }
+        }
     } finally {
         Remove-Item -LiteralPath $tempSetup -Recurse -Force -ErrorAction SilentlyContinue
     }
