@@ -295,14 +295,27 @@ function Test-Executable {
 
 function Get-PythonExe {
     $candidates = @()
+
+    # 1. Buscar en PATH (funciona en sesion normal)
     $cmd = Get-Command python -ErrorAction SilentlyContinue
     if ($cmd) { $candidates += $cmd.Source }
+
+    # 2. Rutas de instalacion para todos los usuarios (Program Files)
     $candidates += @(
         "C:\Program Files\Python314\python.exe",
         "C:\Program Files\Python313\python.exe",
         "C:\Program Files\Python312\python.exe",
         "C:\Program Files\Python311\python.exe"
     )
+
+    # 3. Rutas de instalacion por usuario (AppData) — visibles como admin solo por ruta directa
+    foreach ($user in @($env:USERPROFILE, "C:\Users\gritseeuser1")) {
+        if ($user) {
+            foreach ($ver in @("Python314","Python313","Python312","Python311")) {
+                $candidates += "$user\AppData\Local\Programs\Python\$ver\python.exe"
+            }
+        }
+    }
 
     foreach ($candidate in $candidates | Select-Object -Unique) {
         if (Test-Executable -Path $candidate -Args @("--version")) {
@@ -348,7 +361,11 @@ function Install-SystemDependencies {
             Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$PythonVersion/python-$PythonVersion-amd64.exe" -OutFile $pythonInstaller -UseBasicParsing
             Write-Log "  Instalando Python..."
             $p = Start-Process -FilePath $pythonInstaller -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0" -Wait -PassThru
-            if ($p.ExitCode -ne 0) { throw "Instalador de Python fallo con codigo $($p.ExitCode)." }
+            if ($p.ExitCode -eq 1638) {
+                Write-Log "  Python ya instalado en otra version. Continuando." Yellow
+            } elseif ($p.ExitCode -ne 0) {
+                throw "Instalador de Python fallo con codigo $($p.ExitCode)."
+            }
             Refresh-Path
         } else {
             Write-Log "  Python ya esta instalado." Green
