@@ -521,6 +521,13 @@ try {
         Write-Log "  Sincronizacion de codigo omitida por /skip_sync." Yellow
     } else {
         Sync-Code
+        Cleanup-OldRootScripts
+        # Re-lanzar con el codigo recien descargado para que las funciones
+        # actualizadas queden en memoria (evita el problema de auto-sobreescritura)
+        Write-Log "  Relanzando con codigo actualizado..." Cyan
+        $relaunchArgs = @($args) + @('/skip_sync')
+        & powershell -NoProfile -ExecutionPolicy Bypass -File $MyInvocation.MyCommand.Path @relaunchArgs
+        exit $LASTEXITCODE
     }
     Cleanup-OldRootScripts
     Save-Slug
