@@ -1,0 +1,1 @@
+ffmpeg -i "rtsp://USUARIO:CONTRASENA@IP_CAMARA:554/cam/realmonitor?channel=1&subtype=0" -f segment -segment_time 600 -segment_format mp4 -reset_timestamps 1 -strftime 1 -c copy -map 0:0 -t 3600 C:\Users\gritseeuser1\Documents\qualityvids\%%Y%%m%%d%%p-%%Y%%m%%d-%%H%%M%%S.mp4
