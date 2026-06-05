@@ -336,9 +336,10 @@ if ($errores.Count -gt 0) {
     $log.detalle = "Configuracion exitosa"
 }
 
-$jsonLog  = $log | ConvertTo-Json -Compress
-$jsonFile = "$env:TEMP\gritsee_deploy_log.json"
-[System.IO.File]::WriteAllText($jsonFile, $jsonLog, [System.Text.Encoding]::UTF8)
+$jsonLog    = $log | ConvertTo-Json -Compress
+$jsonFile   = "$env:TEMP\gritsee_deploy_log.json"
+$utf8NoBOM  = [System.Text.UTF8Encoding]::new($false)
+[System.IO.File]::WriteAllText($jsonFile, $jsonLog, $utf8NoBOM)
 
 $logOk = Invoke-WithRetry -Name "Subir log" -Retries 3 -Delay 5 -Action {
     $out = node "$PIPELINE\scripts\log_deploy.js" $jsonFile 2>&1
@@ -346,7 +347,7 @@ $logOk = Invoke-WithRetry -Name "Subir log" -Retries 3 -Delay 5 -Action {
 }
 
 if ($logOk) { Write-Host " OK" -ForegroundColor Green }
-else        { Write-Host " no se pudo subir (revisa google_key.json)" -ForegroundColor Yellow }
+else        { Write-Host " FALLO" -ForegroundColor Red }
 
 # =====================================================
 #  RESUMEN FINAL
@@ -366,6 +367,7 @@ Write-Host ""
 Write-Host "  PENDIENTE MANUAL:"
 Write-Host "  - Editar qualityrun.bat con el RTSP de la camara" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "  Log subido a Google Sheets > pestaña Deployments"
+if ($logOk) { Write-Host "  Log subido a Google Sheets > pestana Deployments" -ForegroundColor Green }
+else        { Write-Host "  Log NO pudo subirse a Sheets" -ForegroundColor Yellow }
 Write-Host ""
 Read-Host "  Presiona Enter para cerrar"

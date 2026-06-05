@@ -17,7 +17,8 @@ if (!jsonFile || !fs.existsSync(jsonFile)) {
     console.error("Archivo JSON no encontrado:", jsonFile);
     process.exit(1);
 }
-const data = JSON.parse(fs.readFileSync(jsonFile, 'utf8'));
+const raw  = fs.readFileSync(jsonFile, 'utf8').replace(/^﻿/, '');
+const data = JSON.parse(raw);
 
     if (!fs.existsSync(KEY_FILE)) {
         console.error("No existe google_key.json — log no subido.");
