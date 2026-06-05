@@ -1,1 +1,25 @@
-ffmpeg -i "rtsp://USUARIO:CONTRASENA@IP_CAMARA:554/cam/realmonitor?channel=1&subtype=0" -f segment -segment_time 600 -segment_format mp4 -reset_timestamps 1 -strftime 1 -c copy -map 0:0 -t 3600 C:\Users\gritseeuser1\Documents\qualityvids\%%Y%%m%%d%%p-%%Y%%m%%d-%%H%%M%%S.mp4
+@echo off
+set HOUR=%time:~0,2%
+set HOUR=%HOUR: =0%
+REM Horas permitidas
+if "%HOUR%"=="11" goto RUN
+if "%HOUR%"=="12" goto RUN
+if "%HOUR%"=="13" goto RUN
+if "%HOUR%"=="14" goto RUN
+if "%HOUR%"=="15" goto RUN
+if "%HOUR%"=="18" goto RUN
+if "%HOUR%"=="19" goto RUN
+if "%HOUR%"=="20" goto RUN
+if "%HOUR%"=="21" goto RUN
+exit /b
+:RUN
+if not exist "C:\Users\gritseeuser1\Documents\qualityvids" mkdir "C:\Users\gritseeuser1\Documents\qualityvids"
+ffmpeg -rtsp_transport tcp ^
+-i "rtsp://USUARIO:CONTRASENA@IP_CAMARA:554/Streaming/Channels/3001" ^
+-an ^
+-c:v libx264 -preset ultrafast -tune zerolatency ^
+-f segment -segment_time 600 -reset_timestamps 1 -strftime 1 ^
+-segment_format mp4 ^
+-segment_format_options movflags=+faststart ^
+-t 3600 ^
+"C:\Users\gritseeuser1\Documents\qualityvids\%%Y%%m%%d%%p-%%Y%%m%%d-%%H%%M%%S.mp4"
