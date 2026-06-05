@@ -1,6 +1,6 @@
 // log_deploy.js
 // Sube un registro de deployment a la hoja "Deployments" del Google Sheet
-// Uso: node log_deploy.js '<json>'
+// Uso: node log_deploy.js <ruta_al_json_file>
 
 const fs   = require('fs');
 const path = require('path');
@@ -12,7 +12,12 @@ const TAB_NAME  = "Deployments";
 const HEADERS   = ["Fecha","Slug","Locacion","Estado","Python","Node","VC++","pip","npm","Tareas","Detalle"];
 
 async function run() {
-    const data = JSON.parse(process.argv[2] || "{}");
+    const jsonFile = process.argv[2];
+if (!jsonFile || !fs.existsSync(jsonFile)) {
+    console.error("Archivo JSON no encontrado:", jsonFile);
+    process.exit(1);
+}
+const data = JSON.parse(fs.readFileSync(jsonFile, 'utf8'));
 
     if (!fs.existsSync(KEY_FILE)) {
         console.error("No existe google_key.json — log no subido.");

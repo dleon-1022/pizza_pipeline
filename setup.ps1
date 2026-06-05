@@ -281,19 +281,42 @@ foreach ($t in $tareas) {
     }
 
     $existe = Get-ScheduledTask -TaskPath "\Gritsee\" -TaskName $t.name -ErrorAction SilentlyContinue
-    $estado = if ($existe) { "actualizada" } else { "nueva" }
 
-    $r = Invoke-WithRetry -Name "Tarea $($t.name)" -Retries 2 -Delay 3 -Action {
-        schtasks /Create /XML $xmlPath /TN "\Gritsee\$($t.name)" /RU gritseeuser1 /RP $Pass /F 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) { throw "schtasks retorno $LASTEXITCODE" }
-    }
+    if ($existe) {
+        # Tarea existe — solo verificar ruta y usuario
+        $accion  = $existe.Actions | Select-Object -First 1
+        $usuario = $existe.Principal.UserId
 
-    if ($r) {
-        Write-Host "    OK ($estado): $($t.name)" -ForegroundColor Green
-        $tareasLog += "$($t.name):$estado"
+        $rutaOk    = ($accion.Execute -like "*$($t.name.Replace(' ','*'))*") -or
+                     ($accion.Execute -like "*gritseeuser1*") -or
+                     ($accion.Arguments -like "*pizza_pipeline*") -or
+                     ($accion.Execute -like "*pizza_pipeline*") -or
+                     ($accion.Execute -like "*qualityrun*") -or
+                     ($accion.Execute -like "*deletequality*")
+        $usuarioOk = $usuario -eq "gritseeuser1"
+
+        if ($rutaOk -and $usuarioOk) {
+            Write-Host "    OK (existia, verificada): $($t.name)" -ForegroundColor Green
+            $tareasLog += "$($t.name):OK-existia"
+        } else {
+            Write-Host "    AVISO (existia, ruta o usuario diferente): $($t.name)" -ForegroundColor Yellow
+            Write-Host "      Usuario: $usuario | Comando: $($accion.Execute)" -ForegroundColor DarkGray
+            $tareasLog += "$($t.name):AVISO-verificar"
+        }
     } else {
-        Write-Host "    ERROR: $($t.name)" -ForegroundColor Red
-        $tareasLog += "$($t.name):ERROR"
+        # Tarea no existe — crearla
+        $r = Invoke-WithRetry -Name "Tarea $($t.name)" -Retries 2 -Delay 3 -Action {
+            schtasks /Create /XML $xmlPath /TN "\Gritsee\$($t.name)" /RU gritseeuser1 /RP $Pass /F 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "schtasks retorno $LASTEXITCODE" }
+        }
+        if ($r) {
+            Write-Host "    OK (nueva): $($t.name)" -ForegroundColor Green
+            $tareasLog += "$($t.name):nueva"
+        } else {
+            Write-Host "    ERROR creando: $($t.name)" -ForegroundColor Red
+            $tareasLog += "$($t.name):ERROR"
+            Add-Error "No se pudo crear tarea $($t.name)"
+        }
     }
 }
 
@@ -313,11 +336,12 @@ if ($errores.Count -gt 0) {
     $log.detalle = "Configuracion exitosa"
 }
 
-$jsonLog = $log | ConvertTo-Json -Compress
-$jsonLog = $jsonLog -replace '"', '\"'
+$jsonLog  = $log | ConvertTo-Json -Compress
+$jsonFile = "$env:TEMP\gritsee_deploy_log.json"
+[System.IO.File]::WriteAllText($jsonFile, $jsonLog, [System.Text.Encoding]::UTF8)
 
 $logOk = Invoke-WithRetry -Name "Subir log" -Retries 3 -Delay 5 -Action {
-    $out = node "$PIPELINE\scripts\log_deploy.js" "$jsonLog" 2>&1
+    $out = node "$PIPELINE\scripts\log_deploy.js" $jsonFile 2>&1
     if ($LASTEXITCODE -ne 0) { throw $out }
 }
 
