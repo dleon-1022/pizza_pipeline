@@ -4,7 +4,10 @@ const { google } = require('googleapis');
 
 console.log("=== upload_to_sheets.js (PROD) ===");
 
-const SHEET_ID  = "1tMHhhksprea8DxD944oe6WV8Anez14OgVi8lJZ76Kb8";
+const SHEET_IDS = [
+  "1tMHhhksprea8DxD944oe6WV8Anez14OgVi8lJZ76Kb8",
+  "1O2Ng1pwez0odqAnC8CImNrq45IWe4oBDFF1s1qoPqF8"
+];
 
 const BASE_DIR        = path.join(__dirname, '..');
 const KEY_FILE        = path.join(BASE_DIR, "google_key.json");
@@ -41,27 +44,17 @@ const SHEET_NAME = nameParts
   .join(' ');
 console.log(`Slug: ${slug} → Hoja destino: ${SHEET_NAME}`);
 
-async function ensureSheetExists(sheets) {
-  const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
+async function ensureSheetExists(sheets, sheetId) {
+  const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: sheetId });
   const exists = spreadsheet.data.sheets.some(
     s => s.properties.title === SHEET_NAME
   );
-
   if (!exists) {
-    console.log(`La hoja "${SHEET_NAME}" no existe, creándola...`);
     await sheets.spreadsheets.batchUpdate({
-      spreadsheetId: SHEET_ID,
-      requestBody: {
-        requests: [{
-          addSheet: {
-            properties: { title: SHEET_NAME }
-          }
-        }]
-      }
+      spreadsheetId: sheetId,
+      requestBody: { requests: [{ addSheet: { properties: { title: SHEET_NAME } } }] }
     });
-    console.log(`Hoja "${SHEET_NAME}" creada.`);
-  } else {
-    console.log(`Hoja "${SHEET_NAME}" encontrada.`);
+    console.log(`Hoja "${SHEET_NAME}" creada en ${sheetId}.`);
   }
 }
 
@@ -133,20 +126,21 @@ async function upload() {
   const client = await auth.getClient();
   const sheets = google.sheets({ version: "v4", auth: client });
 
-  // Crear hoja si no existe
-  await ensureSheetExists(sheets);
-
-  await sheets.spreadsheets.values.append({
-    spreadsheetId: SHEET_ID,
-    range: `${SHEET_NAME}!A:D`,
-    valueInputOption: "USER_ENTERED",
-    insertDataOption: "INSERT_ROWS",
-    requestBody: {
-      values: formattedRows,
-    },
-  });
-
-  console.log(`✅ Google Sheets actualizado correctamente en hoja: ${SHEET_NAME}`);
+  for (const sheetId of SHEET_IDS) {
+    try {
+      await ensureSheetExists(sheets, sheetId);
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: sheetId,
+        range: `${SHEET_NAME}!A:D`,
+        valueInputOption: "USER_ENTERED",
+        insertDataOption: "INSERT_ROWS",
+        requestBody: { values: formattedRows },
+      });
+      console.log(`OK: ${sheetId} → hoja ${SHEET_NAME}`);
+    } catch (err) {
+      console.error(`ERROR en ${sheetId}: ${err.message}`);
+    }
+  }
 }
 
 upload().catch(err => {
