@@ -21,13 +21,23 @@ if (!slug) {
   console.error("location_slug.txt está vacío.");
   process.exit(1);
 }
-// Formato slug: pcsapi-{nombre}-{id_hex_24chars}
-// ej: "pcsapi-sol-de-oriente-6f285d3ac569eaacdddef92e" → "Sol De Oriente"
-// ej: "pcsapi-cardenas-6f285d3ac569eaacdddef92e"       → "Cardenas"
-const withoutPrefix = slug.replace(/^pcsapi-/, '');
-const nameOnly      = withoutPrefix.replace(/-[0-9a-f]{24}$/, '');
-const SHEET_NAME    = nameOnly.split('-')
-  .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+// Formato slug: {prefijo}-{nombre}-{id_hex}
+// ej: "pcsapi-sol-de-oriente-6f285d3ac569eaacdddef92e"       → "Sol De Oriente"
+// ej: "grupolcperu-caminos-e4a2323836a46fac0a4e9691"         → "Caminos"
+// Funciona con cualquier prefijo: pcsapi, grupolcperu, coralsa, cesarpizza, etc.
+// Quita acentos y caracteres especiales para compatibilidad con Google Sheets
+function cleanWord(w) {
+  return w.normalize('NFD').replace(/[̀-ͯ]/g, '')  // quita acentos
+           .replace(/[^a-zA-Z0-9]/g, '');                    // quita cualquier otro caracter raro
+}
+const parts     = slug.split('-');
+const sinPref   = parts.slice(1);                             // quita primer segmento (prefijo)
+const lastPart  = sinPref[sinPref.length - 1];
+const isHexId   = /^[0-9a-f]{16,}$/i.test(lastPart);
+const nameParts = isHexId ? sinPref.slice(0, -1) : sinPref;  // quita ID hex final
+const SHEET_NAME = nameParts
+  .map(w => { const c = cleanWord(w); return c ? c.charAt(0).toUpperCase() + c.slice(1) : ''; })
+  .filter(w => w.length > 0)
   .join(' ');
 console.log(`Slug: ${slug} → Hoja destino: ${SHEET_NAME}`);
 
