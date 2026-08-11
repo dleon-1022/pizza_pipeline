@@ -34,3 +34,16 @@ node_modules/
 # OS
 .DS_Store
 Thumbs.db
+
+# Pipeline simple - no se incluye en el repo principal
+pipeline_simple/
+
+# Interruptor por PCBOX: si existe, el pipeline usa seleccion YOLO en vez de ResNet
+use_crop_only.enabled
+
+# Reportes locales de la seleccion YOLO
+historial_selecciones.csv
+reporte_seleccion.html
+
+# Pruebas locales de solo-crop
+test_crop_only/

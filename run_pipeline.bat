@@ -5,13 +5,40 @@ cd /d C:\pizza_pipeline
 set LOG_FILE=C:\pizza_pipeline\pipeline.log
 set /p LOCATION_SLUG=<location_slug.txt
 
+:: ===========================================================================
+::  INTERRUPTOR POR BOX: seleccion con YOLO en vez de ResNet
+::
+::  Si existe el archivo C:\pizza_pipeline\use_crop_only.enabled este box usa
+::  el flujo nuevo (select_crops_yolo.py): crop directo sobre todos los frames,
+::  dedup de pizzas repetidas y seleccion por confianza del YOLO.
+::
+::  Si el archivo NO existe, el box sigue con el flujo viejo (ResNet + crop).
+::
+::  Habilitar un box:  echo. > C:\pizza_pipeline\use_crop_only.enabled
+::  Volver atras:      del C:\pizza_pipeline\use_crop_only.enabled
+::
+::  El archivo NO se versiona (esta en .gitignore), asi que cada box decide.
+:: ===========================================================================
+set USE_CROP_ONLY=0
+if exist "C:\pizza_pipeline\use_crop_only.enabled" set USE_CROP_ONLY=1
+
 echo ============================================================ > "%LOG_FILE%"
 echo  GRITSEE PIPELINE >> "%LOG_FILE%"
 echo  Fecha: %date%  Hora: %time% >> "%LOG_FILE%"
 echo  Locacion: %LOCATION_SLUG% >> "%LOG_FILE%"
+if "%USE_CROP_ONLY%"=="1" (
+    echo  Modo: SELECCION YOLO ^(sin ResNet^) >> "%LOG_FILE%"
+) else (
+    echo  Modo: ResNet + crop ^(flujo original^) >> "%LOG_FILE%"
+)
 echo ============================================================ >> "%LOG_FILE%"
 
 echo [%time%] Iniciando pipeline - %LOCATION_SLUG%
+if "%USE_CROP_ONLY%"=="1" (
+    echo [%time%] Modo: seleccion YOLO, sin ResNet
+) else (
+    echo [%time%] Modo: ResNet + crop
+)
 
 :: Limpiar carpetas de trabajo (solo una vez aqui)
 del /q "C:\pizza_pipeline\frames\*"          2>nul
@@ -31,9 +58,12 @@ if errorlevel 1 (
 )
 echo [%time%] Frames extraidos OK >> "%LOG_FILE%"
 
+if "%USE_CROP_ONLY%"=="1" goto :seleccion_yolo
+
 :: =====================================================
+::  FLUJO ORIGINAL
 ::  2. Clasificar frames completos con ResNet
-::     Selecciona los mejores frames antes del crop
+::  3. Recortar pizzas con YOLO (solo de los frames buenos)
 :: =====================================================
 echo [%time%] PASO 2: Clasificando frames con ResNet...
 echo [PASO 2] Clasificacion ResNet >> "%LOG_FILE%"
@@ -44,9 +74,6 @@ if errorlevel 1 (
 )
 echo [%time%] Clasificacion OK >> "%LOG_FILE%"
 
-:: =====================================================
-::  3. Recortar pizzas con YOLO (solo de los frames buenos)
-:: =====================================================
 echo [%time%] PASO 3: Recortando pizzas con YOLO...
 echo [PASO 3] Crop YOLO >> "%LOG_FILE%"
 python scripts\crop_pizza_images.py ^
@@ -59,10 +86,38 @@ if errorlevel 1 (
     goto :error
 )
 echo [%time%] Crop OK >> "%LOG_FILE%"
+goto :subida
+
+:: =====================================================
+::  FLUJO NUEVO (2 y 3 en un solo paso)
+::  Crop directo sobre todos los frames + dedup + seleccion
+::  por confianza. Sin ResNet y sin relleno aleatorio.
+:: =====================================================
+:seleccion_yolo
+echo [%time%] PASO 2-3: Crop y seleccion con YOLO...
+echo [PASO 2-3] Seleccion YOLO ^(sin ResNet^) >> "%LOG_FILE%"
+python scripts\select_crops_yolo.py ^
+  --model C:\pizza_pipeline\models\best.pt ^
+  --input_dir C:\pizza_pipeline\frames ^
+  --output_dir C:\pizza_pipeline\cropped_frames ^
+  --selected_dir C:\pizza_pipeline\selected_frames ^
+  --conf 0.45 ^
+  --target_min 100 ^
+  --target_max 150 ^
+  --max_per_video 30 ^
+  --dedup_iou 0.60 ^
+  --dedup_window 3 ^
+  --no_clean >> "%LOG_FILE%" 2>&1
+if errorlevel 1 (
+    echo [%time%] ERROR en seleccion YOLO >> "%LOG_FILE%"
+    goto :error
+)
+echo [%time%] Seleccion YOLO OK >> "%LOG_FILE%"
 
 :: =====================================================
 ::  4. Subir recortes a S3
 :: =====================================================
+:subida
 echo [%time%] PASO 4: Subiendo a S3...
 echo [PASO 4] Upload S3 >> "%LOG_FILE%"
 node scripts\upload_selected_frames.js %LOCATION_SLUG% >> "%LOG_FILE%" 2>&1

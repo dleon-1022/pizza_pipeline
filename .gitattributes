@@ -1,0 +1,3 @@
+# Los .bat DEBEN llegar a Windows con CRLF: cmd.exe falla en los goto con LF
+*.bat text eol=crlf
+*.ps1 text eol=crlf
