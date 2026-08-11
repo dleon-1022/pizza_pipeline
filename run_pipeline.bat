@@ -101,9 +101,9 @@ python scripts\select_crops_yolo.py ^
   --input_dir C:\pizza_pipeline\frames ^
   --output_dir C:\pizza_pipeline\cropped_frames ^
   --selected_dir C:\pizza_pipeline\selected_frames ^
-  --conf 0.45 ^
-  --target_min 100 ^
-  --target_max 150 ^
+  --conf 0.25 ^
+  --target_min 40 ^
+  --target_max 60 ^
   --max_per_video 30 ^
   --dedup_iou 0.60 ^
   --dedup_window 3 ^

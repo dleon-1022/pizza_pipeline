@@ -77,12 +77,14 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--base_dir", default=str(DEFAULT_BASE),
                    help="Carpeta base, donde se guarda el historial. Default: C:\\pizza_pipeline")
 
-    p.add_argument("--conf", type=float, default=0.45,
-                   help="Confianza minima de deteccion. Default: 0.45 (igual que el pipeline viejo).")
-    p.add_argument("--target_min", type=int, default=100,
-                   help="Minimo de imagenes a subir por corrida. Default: 100")
-    p.add_argument("--target_max", type=int, default=150,
-                   help="Maximo de imagenes a subir por corrida. Default: 150")
+    p.add_argument("--conf", type=float, default=0.25,
+                   help=("Confianza minima de deteccion. Default: 0.25, calibrado con el barrido "
+                         "del 2026-08-10 en Pablo Livas y Diaz Ordaz. El 0.45 del pipeline viejo "
+                         "descartaba ~90%% de lo que el modelo si detectaba."))
+    p.add_argument("--target_min", type=int, default=40,
+                   help="Minimo de imagenes a subir por corrida. Default: 40")
+    p.add_argument("--target_max", type=int, default=60,
+                   help="Maximo de imagenes a subir por corrida. Default: 60")
     p.add_argument("--max_per_video", type=int, default=30,
                    help="Tope de crops por video, como el MAX_GOOD_PER_VIDEO viejo. 0 = sin tope. Default: 30")
 
